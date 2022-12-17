@@ -1,21 +1,21 @@
 import threading
 
 class SharedMemory():
-    policy_net = None
-    target_net = None
+    policy_net_dict = None
+    target_net_dict = None
 
     def __init__(self):
         lock = threading.Lock()
 
-    def set_nets(self, policy_net, target_net):
+    def set_nets_dict(self, policy_net_dict, target_net_dict):
         self.lock.acquire()
-        self.policy_net = policy_net
-        self.target_net = target_net
+        self.policy_net_dict = policy_net_dict
+        self.target_net_dict = target_net_dict
         self.lock.release()
 
-    def get_nets(self):
+    def get_nets_dict(self):
         self.lock.acquire()
-        pol, tar = self.policy_net, self.target_net
+        pol, tar = self.policy_net_dict, self.target_net_dict
         self.lock.release()
 
         return pol, tar
