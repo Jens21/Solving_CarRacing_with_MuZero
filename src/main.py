@@ -10,31 +10,36 @@ import time
 th.manual_seed(54321)
 np.random.seed(12345)
 
-N_SIMULATORS = 2
+n_cpus = multiprocessing.cpu_count()
+N_SIMULATORS = 2 # TODO n_cpus-1
 N_REPEAT_ACTIONS = 2
-N_HISTORY = 4
-TRAINING_STEPS = 100_000
-MEM_SIZE = 100_000
+N_HISTORY = 5
+TRAINING_STEPS = 10_000
+MEM_SIZE = 10_000
 BATCH_SIZE = 32
 N_UPDATE_NETWORK = 500
+K = 5
+N_TRAINING_STEPS = 10
+N_WARMUP = 0 # TODO 1000
+N_ACTIONS = 5
 
 device = th.device('cuda' if th.cuda.is_available() else 'cpu')
 
 if __name__ == '__main__':
     shared_memory = SharedMemory()
-    replay_memory = PriorityReplayBuffer(MEM_SIZE)
+    replay_memory = PriorityReplayBuffer(MEM_SIZE, N_HISTORY, K, N_ACTIONS)
 
     # start the simulations and the trainer
-    n_cpus = multiprocessing.cpu_count()
-    trainer = Trainer(replay_memory, shared_memory, N_UPDATE_NETWORK, device)
-    simulator = Simulator(shared_memory, replay_memory, N_REPEAT_ACTIONS, n_cpus-1)
+    trainer = Trainer(replay_memory, shared_memory, N_UPDATE_NETWORK, N_WARMUP, device)
+    simulator = Simulator(shared_memory, replay_memory, N_REPEAT_ACTIONS, N_SIMULATORS, T=1)
 
     # the actual training
-    steps = 1 # TODO, should be something like 100_000/23/600 for 23 processors
     begin_time = time.time()
-    for _ in range(steps):
-        simulator.collect_samples()
-        trainer.start_training(n_cpus * 600, BATCH_SIZE)
-        simulator.join()
+    simulator.start()
+    trainer.start()
 
-    print(time.time()-begin_time)
+    while time.time()-begin_time < 5:
+        time.sleep(1)
+
+    simulator.stop()
+    trainer.stop()
